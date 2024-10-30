@@ -1,3 +1,5 @@
+import asyncio
+from typing import List
 from pydantic import BaseModel
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select
@@ -105,4 +107,16 @@ async def delete_product(product_id: int, session: AsyncSession):
     return {
         "success": True,
         "message": "Product deleted successfully!"
+    }
+
+async def bulk_create_products(productList: List[ProductItem], session: AsyncSession):
+    tasks = [create_product(product, session) for product in productList]
+    result_list = await asyncio.gather(*tasks)
+
+    added_products = [result["data"] for result in result_list if result["success"]]
+
+    return {
+        "success": True,
+        "message": f"Products added successfully: {', '.join(added_products)}",
+        "data": added_products
     }
