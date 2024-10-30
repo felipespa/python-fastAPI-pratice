@@ -122,7 +122,7 @@ async def bulk_create_products(productList: List[ProductItem], session: AsyncSes
         "data": added_products
     }
 
-async def bulk_create_products_by_ids(product_ids: List[int], session: AsyncSession):
+async def bulk_get_products_by_id(product_ids: List[int], session: AsyncSession):
     tasks = [get_product_by_id(product, session) for product in product_ids]
     result_list = await asyncio.gather(*tasks)
 
@@ -134,21 +134,8 @@ async def bulk_create_products_by_ids(product_ids: List[int], session: AsyncSess
             "message": "Error: No valid products found for the given IDs",
         }
 
-    new_products = [
-        Product(
-            name=product.name,
-            price=product.price,
-            description=product.description,
-            quantity=product.quantity
-        )
-        for product in product_list
-    ]
-
-    session.add_all(new_products)
-    await session.commit()
-
     return {
         "success": True,
-        "message": f"{len(new_products)} products inserted successfully!",
-        "data": [product.id for product in new_products]
+        "message": "Products found",
+        "data": product_list
     }
