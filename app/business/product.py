@@ -1,3 +1,6 @@
+import asyncio
+from typing import List
+from fastapi import HTTPException
 from pydantic import BaseModel
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select
@@ -105,4 +108,34 @@ async def delete_product(product_id: int, session: AsyncSession):
     return {
         "success": True,
         "message": "Product deleted successfully!"
+    }
+
+async def bulk_create_products(productList: List[ProductItem], session: AsyncSession):
+    tasks = [create_product(product, session) for product in productList]
+    result_list = await asyncio.gather(*tasks)
+
+    added_products = [result["data"] for result in result_list if result["success"]]
+
+    return {
+        "success": True,
+        "message": f"Products added successfully: {', '.join(added_products)}",
+        "data": added_products
+    }
+
+async def bulk_get_products_by_id(product_ids: List[int], session: AsyncSession):
+    tasks = [get_product_by_id(product, session) for product in product_ids]
+    result_list = await asyncio.gather(*tasks)
+
+    product_list = [result["data"] for result in result_list if result["success"]]
+
+    if not product_list:
+        return {
+            "success": False,
+            "message": "Error: No valid products found for the given IDs",
+        }
+
+    return {
+        "success": True,
+        "message": "Products found",
+        "data": product_list
     }
