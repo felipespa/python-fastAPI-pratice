@@ -1,12 +1,18 @@
 #!/bin/bash
 
-# Cria e ativa o ambiente virtual
+# Create and activate a virtual environment
 python3 -m venv venv
 source venv/bin/activate
 
-# Instala as dependências necessárias
+# Install necessary dependencies
 pip install --upgrade pip
 pip install fastapi uvicorn sqlalchemy databases asyncpg
 
-# Gera o arquivo requirements.txt
+# Generate the requirements.txt file for dependency tracking
 pip freeze > requirements.txt
+
+# Run Alembic to apply database migrations
+alembic upgrade head
+
+# Seed the database with initial data
+python seed.py
