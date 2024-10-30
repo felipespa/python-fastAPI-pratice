@@ -2,7 +2,7 @@ from typing import List
 from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy.ext.asyncio import AsyncSession
 from ..database import get_session
-from ..business.product import ProductItem, bulk_create_products, bulk_create_products_by_ids, create_product, delete_product, get_product, get_product_by_id, update_product
+from ..business.product import ProductItem, bulk_create_products, bulk_get_products_by_id, create_product, delete_product, get_product, get_product_by_id, update_product
 
 router = APIRouter(prefix="/product", tags=["product"])
 
@@ -56,9 +56,9 @@ async def bulk_add_products(products: List[ProductItem], db: AsyncSession = Depe
 
     return result
 
-@router.post("bulk-insert-by-id", response_model=dict, status_code=status.HTTP_201_CREATED)
+@router.post("bulk-get-by-id", response_model=dict, status_code=status.HTTP_200_OK)
 async def bulk_add_products_by_id(products_ids: List[int], db: AsyncSession = Depends(get_session)):
-    result = bulk_create_products_by_ids(products_ids, db)
+    result = bulk_get_products_by_id(products_ids, db)
 
     if not result['success']:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=result['message'])
