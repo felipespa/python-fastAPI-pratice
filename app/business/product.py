@@ -4,7 +4,7 @@ from fastapi import HTTPException
 from pydantic import BaseModel
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select
-from ..models.product import Product
+from ..models.product import Product, ProductSchema
 
 class ProductItem(BaseModel):
     name: str
@@ -51,21 +51,22 @@ async def get_product_by_id(product_id: int, session: AsyncSession):
         "data": product
     }
 
-async def create_product(product: ProductItem, session: AsyncSession):
+async def create_product(product: ProductItem, session: AsyncSession, ignore_commit=False):
     new_product = Product(
         name=product.name,
         price=product.price,
         description=product.description
     )
-
+    
     session.add(new_product)
-    await session.flush()
-    await session.commit()
+
+    if not ignore_commit:
+        await session.commit()
 
     return {
         "success": True,
         "data": new_product,
-        "message": "Product created successfully!!"
+        "message": "Product created successfully!"
     }
 
 async def update_product(product_id: int, product: ProductItem, session: AsyncSession):
@@ -96,12 +97,12 @@ async def delete_product(product_id: int, session: AsyncSession):
     if not result["success"]:
         return {
             "success": False,
-            "message": "Cannot delete. Product not found",
-            "data": None
+            "message": "Cannot delete. Product not found"
         }
 
 
     product_to_delete = result["data"]
+
     await session.delete(product_to_delete)
     await session.commit()
 
@@ -111,22 +112,31 @@ async def delete_product(product_id: int, session: AsyncSession):
     }
 
 async def bulk_create_products(productList: List[ProductItem], session: AsyncSession):
-    tasks = [create_product(product, session) for product in productList]
-    result_list = await asyncio.gather(*tasks)
+    async with session.begin():
+        tasks = [create_product(product, session, ignore_commit=True) for product in productList]
+        result_list = await asyncio.gather(*tasks)
 
-    added_products = [result["data"] for result in result_list if result["success"]]
+    added_products = [
+        ProductSchema.model_validate(result["data"].__dict__)
+        for result in result_list if result["success"]
+    ]
+
+    product_names = ', '.join([product.name for product in added_products])
 
     return {
         "success": True,
-        "message": f"Products added successfully: {', '.join(added_products)}",
+        "message": f"Products added successfully: {product_names}",
         "data": added_products
     }
 
 async def bulk_get_products_by_id(product_ids: List[int], session: AsyncSession):
-    tasks = [get_product_by_id(product, session) for product in product_ids]
+    tasks = [get_product_by_id(product_id, session) for product_id in product_ids]
     result_list = await asyncio.gather(*tasks)
 
-    product_list = [result["data"] for result in result_list if result["success"]]
+    product_list = [
+        ProductSchema.model_validate(result["data"].__dict__)
+        for result in result_list if result["success"]
+    ]    
 
     if not product_list:
         return {

@@ -1,3 +1,4 @@
+from pydantic import BaseModel
 from sqlalchemy import Column, Integer, Numeric, String
 from ..database import Base
 
@@ -11,3 +12,12 @@ class Product(Base):
 
     def __repr__(self):
         return f"<Product(nome={self.name}, price={self.price}, description={self.description})>"
+
+class ProductSchema(BaseModel):
+    id: int
+    name: str
+    price: float
+    description: str | None = None
+
+    class Config:
+        from_attributes = True
